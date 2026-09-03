@@ -1,3 +1,4 @@
+import piexif from 'piexifjs';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 // Fixed Authentic Ray-Ban Meta Gen 2 Hardware Specification (Injected Automatically in Background)
@@ -176,40 +177,33 @@ export default function App() {
 
   // Local EXIF Byte Serialization for Meta 2
   const generateExifBytes = useCallback(() => {
-    if (!window.piexif) return null;
+    if (!piexif) return null;
 
     const zeroth = {
-      [window.piexif.ImageIFD.Make]: META_GEN2_SPEC.make,
-      [window.piexif.ImageIFD.Model]: META_GEN2_SPEC.model,
-      [window.piexif.ImageIFD.Software]: META_GEN2_SPEC.software,
-      [window.piexif.ImageIFD.Orientation]: 1,
-      [window.piexif.ImageIFD.XResolution]: [72, 1],
-      [window.piexif.ImageIFD.YResolution]: [72, 1],
-      [window.piexif.ImageIFD.ResolutionUnit]: 2,
-      [window.piexif.ImageIFD.DateTime]: captureDate,
+      [piexif.ImageIFD.Make]: META_GEN2_SPEC.make,
+      [piexif.ImageIFD.Model]: META_GEN2_SPEC.model,
+      [piexif.ImageIFD.Software]: META_GEN2_SPEC.software,
+      [piexif.ImageIFD.Orientation]: 1,
+      [piexif.ImageIFD.XResolution]: [72, 1],
+      [piexif.ImageIFD.YResolution]: [72, 1],
+      [piexif.ImageIFD.ResolutionUnit]: 2,
+      [piexif.ImageIFD.DateTime]: captureDate,
     };
 
     const exif = {
-      [window.piexif.ExifIFD.ExposureTime]: [META_GEN2_SPEC.shutterNumerator, META_GEN2_SPEC.shutterDenominator],
-      [window.piexif.ExifIFD.FNumber]: [Math.round(META_GEN2_SPEC.aperture * 10), 10],
-      [window.piexif.ExifIFD.ISOSpeedRatings]: META_GEN2_SPEC.iso,
-      [window.piexif.ExifIFD.FocalLength]: [Math.round(parseFloat(META_GEN2_SPEC.focalLength) * 10), 10],
-      [window.piexif.ExifIFD.FocalLengthIn35mmFilm]: META_GEN2_SPEC.focalLength35mm,
-      [window.piexif.ExifIFD.ColorSpace]: 1,
-      [window.piexif.ExifIFD.DateTimeOriginal]: captureDate,
-      [window.piexif.ExifIFD.DateTimeDigitized]: captureDate,
-      [window.piexif.ExifIFD.LensMake]: META_GEN2_SPEC.lensMake,
-      [window.piexif.ExifIFD.LensModel]: META_GEN2_SPEC.lensModel
+      [piexif.ExifIFD.ExposureTime]: [META_GEN2_SPEC.shutterNumerator, META_GEN2_SPEC.shutterDenominator],
+      [piexif.ExifIFD.FNumber]: [Math.round(META_GEN2_SPEC.aperture * 10), 10],
+      [piexif.ExifIFD.ISOSpeedRatings]: META_GEN2_SPEC.iso,
+      [piexif.ExifIFD.FocalLength]: [Math.round(parseFloat(META_GEN2_SPEC.focalLength) * 10), 10],
+      [piexif.ExifIFD.FocalLengthIn35mmFilm]: META_GEN2_SPEC.focalLength35mm,
+      [piexif.ExifIFD.ColorSpace]: 1,
+      [piexif.ExifIFD.DateTimeOriginal]: captureDate,
+      [piexif.ExifIFD.DateTimeDigitized]: captureDate,
+      [piexif.ExifIFD.LensMake]: META_GEN2_SPEC.lensMake,
+      [piexif.ExifIFD.LensModel]: META_GEN2_SPEC.lensModel
     };
 
-    const gps = {
-      [window.piexif.GPSIFD.GPSLatitudeRef]: 'N',
-      [window.piexif.GPSIFD.GPSLatitude]: degToDmsRational(37.4848),
-      [window.piexif.GPSIFD.GPSLongitudeRef]: 'W',
-      [window.piexif.GPSIFD.GPSLongitude]: degToDmsRational(-122.1484)
-    };
-
-    return window.piexif.dump({ "0th": zeroth, "Exif": exif, "GPS": gps, "1st": {}, "thumbnail": null });
+    return piexif.dump({ "0th": zeroth, "Exif": exif, "1st": {}, "thumbnail": null });
   }, [captureDate]);
 
   // Pure Local Canvas Composite Renderer
@@ -313,11 +307,11 @@ export default function App() {
     let finalTagged = baseOutput;
 
     // In-browser binary metadata injection
-    if (window.piexif) {
+    if (piexif) {
       try {
         const exifBytes = generateExifBytes();
         if (exifBytes) {
-          finalTagged = window.piexif.insert(exifBytes, baseOutput);
+          finalTagged = piexif.insert(exifBytes, baseOutput);
         }
       } catch (e) {
         console.warn('Local EXIF injection warning:', e);
@@ -327,14 +321,6 @@ export default function App() {
     setRenderedDataUrl(finalTagged);
   };
 
-  // Load piexifjs strictly as a local utility
-  useEffect(() => {
-    if (window.piexif) return;
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/piexifjs/1.0.6/piexif.min.js';
-    script.async = true;
-    document.body.appendChild(script);
-  }, []);
 
   useEffect(() => {
     if (rawImageSource) {
